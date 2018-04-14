@@ -1,16 +1,57 @@
 import React, { Component } from 'react';
 //import { BrowserRouter as Router, Route, Link } from 'react-router-dom';
 import { Router, browserHistory, Link, Route } from 'react-router';
+import { connect } from 'react-redux';
+import { loadProfileData } from './actions/profile'
+import _ from 'lodash'
 
-const Home = ({match, location, history}) => {
+const ArtistsTable = ({entries, title}) => {
+  const items = _.map(entries, (entry) => {
+    return (
+      <tr>
+        <td><a href={entry.external_urls.spotify} target="_blank">{entry.name}</a></td>
+      </tr>
+    )
+  })
   return (
     <div>
-      <h3>Home</h3>
+      <h4>{title}:</h4>
+      <table>
+        <tbody>
+          {items}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-export { Home };
+const TracksTable = ({entries, title}) => {
+  console.log(entries)
+  const items = _.map(entries, (entry) => {
+    return (
+      <tr>
+        <td><a href="#" target="_blank">{entry.name}</a></td>
+        <td>{entry.album}</td>
+        <td>{entry.artist}</td>
+      </tr>
+    )
+  })
+  return (
+    <div>
+      <h4>{title}:</h4>
+      <table>
+        <tbody>
+          <tr>
+            <th>Name</th>
+            <th>Album</th>
+            <th>Artist</th>
+          </tr>
+          {items}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 class App extends Component {
   constructor(props){
@@ -19,16 +60,34 @@ class App extends Component {
     }
   }
 
-  render() {
-    //this.props.history.push('')
-    return (
-      <div className="app-container">
-        <h1> This is the app, successfully rendered!  Yay! </h1>
+  componentWillMount(){
+    this.props.dispatch(loadProfileData(this.props.data))
+  }
 
-        <div className="app-container">{this.props.children}</div>
-      </div>
-    );
+  render() {
+    if (!_.isEmpty(this.props.profileData)){
+      const profileData = this.props.profileData
+      
+      return (
+        <div className="app-container">
+          <h3>Welcome, {profileData.user}!</h3>
+          <ArtistsTable title="Top Artists" entries={profileData.top_artists} />
+          <TracksTable title="Top Tracks" entries={profileData.top_tracks} />
+        </div>
+      );
+    }
+    else{
+      return (
+        <p>Loading...</p>
+        )
+    }
   }
 }
 
-export default App;
+function mapStateToProps(state){
+  return { profileData: state.profileData }
+}
+
+export default connect(
+  mapStateToProps
+)(App);

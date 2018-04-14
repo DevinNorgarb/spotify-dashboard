@@ -1,30 +1,19 @@
-/**
- * This is an example of a basic node.js script that performs
- * the Authorization Code oAuth2 flow to authenticate against
- * the Spotify Accounts.
- *
- * For more information, read
- * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
- */
 
-var express = require('express'); // Express web server framework
-var request = require('request'); // "Request" library
+var express = require('express'); 
+var request = require('request'); 
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
-var React = require('react');
-var ReactDOMServer = require('react-dom/server');
-var ReactRouter = require('react-router');
-var RouterContext = ReactRouter.RouterContext;
+
+var dataFunctions = require('./fetch_data');
+var fetchProfileData = dataFunctions.fetchProfileData;
+var fetchTopArtists = dataFunctions.fetchTopArtists;
+var fetchTopTracks = dataFunctions.fetchTopTracks;
 
 var client_id = process.env.CLIENT_ID; // Your client id
 var client_secret = process.env.CLIENT_SECRET; // Your secret
 var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
-/**
- * Generates a random string containing numbers and letters
- * @param  {number} length The length of the string
- * @return {string} The generated string
- */
+
 var generateRandomString = function(length) {
   var text = '';
   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -47,7 +36,7 @@ app.use(cookieParser());
 app.set('views', __dirname + '/src/views');
 
 app.get('/', function(req, res) {
-  res.render('index.ejs', { markup: { foo: 'bar'} });
+  res.render('index.ejs', { show_app: false, data: {} });
 })
 
 app.get('/login', function(req, res) {
@@ -55,8 +44,7 @@ app.get('/login', function(req, res) {
   var state = generateRandomString(16);
   res.cookie(stateKey, state);
 
-  // your application requests authorization
-  var scope = 'user-read-private user-read-email';
+  var scope = 'user-read-private user-read-email user-top-read';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -68,10 +56,6 @@ app.get('/login', function(req, res) {
 });
 
 app.get('/callback', function(req, res) {
-
-  // your application requests refresh and access tokens
-  // after checking the state parameter
-
   var code = req.query.code || null;
   var state = req.query.state || null;
   var storedState = req.cookies ? req.cookies[stateKey] : null;
@@ -98,28 +82,9 @@ app.get('/callback', function(req, res) {
 
     request.post(authOptions, function(error, response, body) {
       if (!error && response.statusCode === 200) {
-
         var access_token = body.access_token,
             refresh_token = body.refresh_token;
-
-        var options = {
-          url: 'https://api.spotify.com/v1/me',
-          headers: { 'Authorization': 'Bearer ' + access_token },
-          json: true
-        };
-
-        request.get(options, function(error, response, body) {
-          var markup_val;
-          var renderProps;
-          if (!error && response.statusCode === 200) {
-            markup_val = "success";
-          }
-          else {
-            markup = "error";
-          }
-          res.render('index', { markup: {foo: markup_val }});
-        });
-
+        fetchProfileData(access_token, res);
       } else {
         res.redirect('/#' +
           querystring.stringify({

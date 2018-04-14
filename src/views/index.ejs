@@ -8,10 +8,10 @@
      <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
      <script>
       $(document).ready(function() {
-        var markup = <%- JSON.stringify(markup) -%>;
-        console.log(markup)
-        if(markup.foo === 'success'){
-          Dashboard.render('dashboard');
+        var data = <%- JSON.stringify(data) -%>;
+        var show_app = <%- JSON.stringify(show_app) -%>;
+        if(show_app === true){
+          Dashboard.render('dashboard', data);
         }
       });
     </script>

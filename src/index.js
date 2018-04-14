@@ -3,11 +3,18 @@ import ReactDOM from 'react-dom';
 import App from './App';
 import registerServiceWorker from './registerServiceWorker';
 import createHistory from 'history/createBrowserHistory'
+import { Provider } from 'react-redux';
+import configureStore from './configureStore'
 
-
-function renderToElement(elementId, options) {
+function renderToElement(elementId, data) {
 	const history = createHistory();
-  ReactDOM.render(<App properties={options} history={history} />, document.getElementById(elementId));
+	const store = configureStore();
+
+  ReactDOM.render(
+  	<Provider store={store} key="provider">
+  		<App data={data} history={history} />
+  	</Provider>, document.getElementById(elementId)
+  );
 }
 
 export default renderToElement;
