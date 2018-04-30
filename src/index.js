@@ -12,7 +12,7 @@ function renderToElement(elementId, data) {
 
   ReactDOM.render(
   	<Provider store={store} key="provider">
-  		<App data={data} history={history} />
+  		<App data={data} history={history} template={elementId}/>
   	</Provider>, document.getElementById(elementId)
   );
 }

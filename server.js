@@ -8,10 +8,11 @@ var dataFunctions = require('./fetch_data');
 var fetchProfileData = dataFunctions.fetchProfileData;
 var fetchTopArtists = dataFunctions.fetchTopArtists;
 var fetchTopTracks = dataFunctions.fetchTopTracks;
+var fetchPlaylistTracks = dataFunctions.fetchPlaylistTracks;
 
-var client_id = process.env.CLIENT_ID; // Your client id
-var client_secret = process.env.CLIENT_SECRET; // Your secret
-var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
+//var client_id = process.env.CLIENT_ID; // Your client id
+//var client_secret = process.env.CLIENT_SECRET; // Your secret
+//var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
 
 var generateRandomString = function(length) {
@@ -25,6 +26,8 @@ var generateRandomString = function(length) {
 };
 
 var stateKey = 'spotify_auth_state';
+var access_token = '';
+var refresh_token = '';
 
 var app = express();
 
@@ -55,6 +58,10 @@ app.get('/login', function(req, res) {
     }));
 });
 
+app.get('/playlist/:name-:id', function(req, res) {
+  fetchPlaylistTracks(access_token, res, req.params.id, req.params.name)
+});
+
 app.get('/callback', function(req, res) {
   var code = req.query.code || null;
   var state = req.query.state || null;
@@ -82,8 +89,8 @@ app.get('/callback', function(req, res) {
 
     request.post(authOptions, function(error, response, body) {
       if (!error && response.statusCode === 200) {
-        var access_token = body.access_token,
-            refresh_token = body.refresh_token;
+        access_token = body.access_token,
+        efresh_token = body.refresh_token;
         fetchProfileData(access_token, res);
       } else {
         res.redirect('/#' +

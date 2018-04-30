@@ -4,11 +4,13 @@ import { Router, browserHistory, Link, Route } from 'react-router';
 import { connect } from 'react-redux';
 import { loadProfileData } from './actions/profile'
 import _ from 'lodash'
+import Playlist from './components/playlist'
+import './static/css/styles.css'
 
 const ArtistsTable = ({entries, title}) => {
   const items = _.map(entries, (entry) => {
     return (
-      <tr>
+      <tr key={entry.name}>
         <td><a href={entry.external_urls.spotify} target="_blank">{entry.name}</a></td>
       </tr>
     )
@@ -26,10 +28,9 @@ const ArtistsTable = ({entries, title}) => {
 }
 
 const TracksTable = ({entries, title}) => {
-  console.log(entries)
   const items = _.map(entries, (entry) => {
     return (
-      <tr>
+      <tr key={entry.name+entry.album}>
         <td><a href="#" target="_blank">{entry.name}</a></td>
         <td>{entry.album}</td>
         <td>{entry.artist}</td>
@@ -53,6 +54,15 @@ const TracksTable = ({entries, title}) => {
   );
 }
 
+const Playlists = ({entries}) => {
+  const items = _.map(entries, (entry) => {
+    return <li key={entry.name}><a href={"playlist/" + entry.name + '-' +entry.id}>{entry.name}</a></li>
+  }); 
+  return(
+    <ul>{items}</ul>
+  )
+}
+
 class App extends Component {
   constructor(props){
     super(props);
@@ -61,20 +71,26 @@ class App extends Component {
   }
 
   componentWillMount(){
-    this.props.dispatch(loadProfileData(this.props.data))
+    //this.props.dispatch(loadProfileData(this.props.data))
   }
 
   render() {
-    if (!_.isEmpty(this.props.profileData)){
-      const profileData = this.props.profileData
-      
+    if (!_.isEmpty(this.props.data) && this.props.template === 'dashboard'){
+      const profileData = this.props.data
       return (
         <div className="app-container">
           <h3>Welcome, {profileData.user}!</h3>
           <ArtistsTable title="Top Artists" entries={profileData.top_artists} />
           <TracksTable title="Top Tracks" entries={profileData.top_tracks} />
+          <Playlists entries={profileData.playlists} />
         </div>
       );
+    }
+
+    else if (!_.isEmpty(this.props.data) && this.props.template === 'playlist'){
+      return (
+        <Playlist data={this.props.data} />
+      )
     }
     else{
       return (

@@ -1,5 +1,6 @@
 var request = require('request'); 
 var querystring = require('querystring');
+var _ = require('lodash');
 
 var fetchProfileData = function(access_token, res){
   var options = {
@@ -60,7 +61,8 @@ var fetchTopTracks = function(access_token, data, res){
         var track = response.body.items[key];
         data.top_tracks.push({ name: track.name, artist: track.artists[0].name, album: track.album.name, external_urls: track.external_urls });
       }
-      res.render('index', { show_app: true, data: data });
+      //res.render('index', { show_app: true, data: data });
+      fetchPlaylists(access_token, data, res)
     }
     else {
       res.redirect('/#' +
@@ -71,6 +73,75 @@ var fetchTopTracks = function(access_token, data, res){
   });
 }
 
-module.exports.fetchProfileData = fetchProfileData;
-module.exports.fetchTopArtists = fetchTopArtists;
-module.exports.fetchTopTracks = fetchTopTracks;
+var fetchPlaylists = function(access_token, data, res){
+  var options = {
+    url: 'https://api.spotify.com/v1/me/playlists',
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    json: true
+  };
+
+  request.get(options, function(error, response, body) {
+    data.playlists = [];
+    if (!error && response.statusCode === 200) {
+      for(var key in response.body.items){
+        var playlist = response.body.items[key];
+        if (playlist.owner.id === 'tim.hammer'){
+          data.playlists.push({
+            name: playlist.name,
+            id: playlist.id
+          })
+        }
+      }
+      res.render('index', { show_app: true, data: data });
+      //fetchPlaylistTracks(access_token, data, res, 0);
+    }
+    else {
+      res.redirect('/#' +
+        querystring.stringify({
+          error: 'could_not_retrieve_playlists'
+        }));
+    }
+  })
+}
+
+var fetchPlaylistTracks = function(access_token, res, playlist_id, name){
+  var data= {name: name, tracks: []};
+  var options = {
+    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks`,
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    json: true
+  };
+
+  request.get(options, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+
+      for(var key in response.body.items){
+        var track = response.body.items[key];
+        data.tracks.push({
+          name: track.track.name,
+          artists: _.map(track.track.artists, function(entry) { return entry.name }),
+          album: track.track.album.name,
+          added_at: track.added_at,
+        })
+      }
+
+      res.render('playlist', { show_app: true, data: data });
+    }
+    else {
+      res.redirect('/#' +
+        querystring.stringify({
+          error: 'could_not_retrieve_playlists'
+        }));
+    }
+  })
+}
+
+
+
+
+module.exports = {
+  fetchProfileData: fetchProfileData,
+  fetchTopArtists: fetchTopArtists,
+  fetchTopTracks: fetchTopTracks,
+  fetchPlaylistTracks: fetchPlaylistTracks
+}
