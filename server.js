@@ -3,6 +3,7 @@ var express = require('express');
 var request = require('request'); 
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
+var _ = require('lodash')
 
 var dataFunctions = require('./fetch_data');
 var fetchProfileData = dataFunctions.fetchProfileData;
@@ -11,9 +12,13 @@ var fetchTopTracks = dataFunctions.fetchTopTracks;
 var fetchPlaylistTracks = dataFunctions.fetchPlaylistTracks;
 
 //var client_id = process.env.CLIENT_ID; // Your client id
+
 //var client_secret = process.env.CLIENT_SECRET; // Your secret
+
 //var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
+
+const bodyParser = require('body-parser')
 
 var generateRandomString = function(length) {
   var text = '';
@@ -31,6 +36,9 @@ var refresh_token = '';
 
 var app = express();
 
+app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: true}))
+
 app.set('view engine', 'ejs');
 
 app.use(express.static(__dirname + '/src/static'))
@@ -47,7 +55,7 @@ app.get('/login', function(req, res) {
   var state = generateRandomString(16);
   res.cookie(stateKey, state);
 
-  var scope = 'user-read-private user-read-email user-top-read';
+  var scope = 'user-read-private user-read-email user-top-read playlist-modify-public';
   res.redirect('https://accounts.spotify.com/authorize?' +
     querystring.stringify({
       response_type: 'code',
@@ -125,6 +133,68 @@ app.get('/refresh_token', function(req, res) {
     }
   });
 });
+
+app.post('/playlist', function (req, res) {
+  const playlist_id = req.body.id
+  const old_playlist = {id: playlist_id, tracks: []}
+
+  var options = {
+    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks`,
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    json: true
+  }
+
+  request.get(options, function(error, response, body) {
+    if (!error && response.statusCode === 200) {
+
+      for(var key in response.body.items){
+        var track = response.body.items[key]
+        old_playlist.tracks.push({
+          id: track.track.id
+        })
+      }
+
+      sortPlaylist(old_playlist.tracks, req.body.tracks, playlist_id)
+    }
+    else {
+      res.redirect('/#' +
+        querystring.stringify({
+          error: 'could_not_retrieve_playlists'
+        }))
+    }
+  })
+})
+
+
+var sortPlaylist = function(old_tracks, new_tracks, playlist_id) {
+  replaceTrack(old_tracks, new_tracks, 0, playlist_id)
+}
+
+var replaceTrack = function(old_tracks, new_tracks, new_index, playlist_id){
+  if(new_index < new_tracks.length){
+    const old_index = _.findIndex(old_tracks, (old_track) => { return old_track.id === new_tracks[new_index].id })
+    var options = {
+      url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks`,
+      headers: { 'Authorization': 'Bearer ' + access_token },
+      json: true,
+      method: 'PUT',
+      body: {range_start: old_index, insert_before: new_index}
+    }
+
+    request.put(options, function(error, response, body) {
+      if (!error && response.statusCode === 200) {
+        old_tracks.splice(new_index, 0, old_tracks.splice(old_index, 1)[0])
+        replaceTrack(old_tracks, new_tracks, new_index+=1, playlist_id)
+      }
+      else {
+        console.log(body.error)
+      }
+    })
+  }
+  else{
+    console.log('All done!')
+  }
+}
 
 console.log('Listening on 8888');
 app.listen(8888);
