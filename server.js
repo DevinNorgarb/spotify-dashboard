@@ -11,12 +11,9 @@ var fetchTopArtists = dataFunctions.fetchTopArtists;
 var fetchTopTracks = dataFunctions.fetchTopTracks;
 var fetchPlaylistTracks = dataFunctions.fetchPlaylistTracks;
 
-//var client_id = process.env.CLIENT_ID; // Your client id
-
-//var client_secret = process.env.CLIENT_SECRET; // Your secret
-
-//var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
-
+var client_id = process.env.CLIENT_ID; // Your client id
+var client_secret = process.env.CLIENT_SECRET; // Your secret
+var redirect_uri = process.env.REDIRECT_URI; // Your redirect uri
 
 const bodyParser = require('body-parser')
 
@@ -47,6 +44,7 @@ app.use(cookieParser());
 app.set('views', __dirname + '/src/views');
 
 app.get('/', function(req, res) {
+
   res.render('index.ejs', { show_app: false, data: {} });
 })
 
@@ -67,8 +65,12 @@ app.get('/login', function(req, res) {
 });
 
 app.get('/playlist/:name-:id', function(req, res) {
-  fetchPlaylistTracks(access_token, res, req.params.id, req.params.name)
+  fetchPlaylistTracks(access_token, res, 0, req.params.id, req.params.name)
 });
+
+app.get('/dashboard', function(req, res) {
+  fetchProfileData(access_token, res)
+})
 
 app.get('/callback', function(req, res) {
   var code = req.query.code || null;
@@ -98,8 +100,8 @@ app.get('/callback', function(req, res) {
     request.post(authOptions, function(error, response, body) {
       if (!error && response.statusCode === 200) {
         access_token = body.access_token,
-        efresh_token = body.refresh_token;
-        fetchProfileData(access_token, res);
+        refresh_token = body.refresh_token;
+        res.redirect('/dashboard')
       } else {
         res.redirect('/#' +
           querystring.stringify({
@@ -138,8 +140,13 @@ app.post('/playlist', function (req, res) {
   const playlist_id = req.body.id
   const old_playlist = {id: playlist_id, tracks: []}
 
+  fetchPlaylistTracksForSort(access_token, res, 0, playlist_id, req)
+})
+
+var fetchPlaylistTracksForSort = function(access_token, res, offset, playlist_id, req, data = {}){
+  var data = _.isEmpty(data) ? {name: req.body.name, id: playlist_id, tracks: []} : data;
   var options = {
-    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks`,
+    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks?offset=${offset}`,
     headers: { 'Authorization': 'Bearer ' + access_token },
     json: true
   }
@@ -149,28 +156,34 @@ app.post('/playlist', function (req, res) {
 
       for(var key in response.body.items){
         var track = response.body.items[key]
-        old_playlist.tracks.push({
+        data.tracks.push({
+          name: track.track.name,
+          artists: _.map(track.track.artists, function(entry) { return entry.name }),
+          album: track.track.album.name,
+          added_at: track.added_at,
           id: track.track.id
         })
       }
-
-      sortPlaylist(old_playlist.tracks, req.body.tracks, playlist_id)
+      if(response.body.items.length === 0)
+        sortPlaylist(data.tracks, req.body.tracks, playlist_id, req.body.name, res)
+      else
+        fetchPlaylistTracksForSort(access_token, res, offset+=100, playlist_id, req, data)
     }
     else {
       res.redirect('/#' +
         querystring.stringify({
-          error: 'could_not_retrieve_playlists'
+          error: 'could_not_retrieve_playlists_for_sort'
         }))
     }
   })
-})
-
-
-var sortPlaylist = function(old_tracks, new_tracks, playlist_id) {
-  replaceTrack(old_tracks, new_tracks, 0, playlist_id)
 }
 
-var replaceTrack = function(old_tracks, new_tracks, new_index, playlist_id){
+
+var sortPlaylist = function(old_tracks, new_tracks, playlist_id, playlist_name, res) {
+  replaceTrack(old_tracks, new_tracks, 0, playlist_id, playlist_name, res)
+}
+
+var replaceTrack = function(old_tracks, new_tracks, new_index, playlist_id, playlist_name, res){
   if(new_index < new_tracks.length){
     const old_index = _.findIndex(old_tracks, (old_track) => { return old_track.id === new_tracks[new_index].id })
     var options = {
@@ -184,7 +197,7 @@ var replaceTrack = function(old_tracks, new_tracks, new_index, playlist_id){
     request.put(options, function(error, response, body) {
       if (!error && response.statusCode === 200) {
         old_tracks.splice(new_index, 0, old_tracks.splice(old_index, 1)[0])
-        replaceTrack(old_tracks, new_tracks, new_index+=1, playlist_id)
+        replaceTrack(old_tracks, new_tracks, new_index+=1, playlist_id, playlist_name, res)
       }
       else {
         console.log(body.error)
@@ -192,7 +205,7 @@ var replaceTrack = function(old_tracks, new_tracks, new_index, playlist_id){
     })
   }
   else{
-    console.log('All done!')
+    return('all done here')
   }
 }
 

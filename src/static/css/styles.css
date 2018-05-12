@@ -1,3 +1,50 @@
 .playlist-info {
 	max-width: 800px;
 }
+
+.top-artists {
+	display: inline;
+	width: 50%;
+}
+
+.top-tracks {
+	display: inline;
+	width: 50%;
+}
+
+.separator {
+	width: 100px;
+}
+
+.top-artists-table td {
+	padding: 5px;
+	border: 1px solid black;
+}
+
+.top-tracks-table td, .top-tracks-table th {
+	padding: 5px;
+	border: 1px solid black;
+}
+
+.playlists-table td {
+	padding: 5px;
+	border: 1px solid black;
+}
+
+.dashboard-table td {
+	vertical-align: top;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+.playlist-detail-table td, .playlist-detail-table th {
+	padding: 5px;
+	border: 1px solid black;
+}
+
+.playlist-form {
+	margin-bottom: 50px;
+}
+

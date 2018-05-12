@@ -9,7 +9,7 @@ import configureStore from './configureStore'
 function renderToElement(elementId, data) {
 	const history = createHistory();
 	const store = configureStore();
-
+	
   ReactDOM.render(
   	<Provider store={store} key="provider">
   		<App data={data} history={history} template={elementId}/>

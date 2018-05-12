@@ -9,6 +9,7 @@ module.exports = {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'src', 'static', 'js')
   },
+  watch: true,
   module: {
 		loaders: [
       {

@@ -91,7 +91,7 @@ var fetchPlaylists = function(access_token, data, res){
           })
         }
       }
-      res.render('index', { show_app: true, data: data })
+      res.render('dashboard', { show_app: true, data: data })
     }
     else {
       res.redirect('/#' +
@@ -102,10 +102,10 @@ var fetchPlaylists = function(access_token, data, res){
   })
 }
 
-var fetchPlaylistTracks = function(access_token, res, playlist_id, name){
-  var data = {name: name, id: playlist_id, tracks: []}
+var fetchPlaylistTracks = function(access_token, res, offset, playlist_id, name, data = {}){
+  var data = _.isEmpty(data) ? {name: name, id: playlist_id, tracks: []} : data;
   var options = {
-    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks`,
+    url: `https://api.spotify.com/v1/users/tim.hammer/playlists/${playlist_id}/tracks?offset=${offset}`,
     headers: { 'Authorization': 'Bearer ' + access_token },
     json: true
   }
@@ -123,7 +123,10 @@ var fetchPlaylistTracks = function(access_token, res, playlist_id, name){
           id: track.track.id
         })
       }
-      res.render('playlist', { show_app: true, data: data })
+      if(response.body.items.length === 0)
+        res.render('playlist', { show_app: true, data: data })
+      else
+        fetchPlaylistTracks(access_token, res, offset+=100, playlist_id, name, data)
     }
     else {
       res.redirect('/#' +

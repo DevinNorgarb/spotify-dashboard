@@ -8,17 +8,18 @@ import Playlist from './components/playlist'
 import './static/css/styles.css'
 
 const ArtistsTable = ({entries, title}) => {
-  const items = _.map(entries, (entry) => {
+  const items = _.map(entries, (entry, index) => {
     return (
       <tr key={entry.name}>
+        <td>{index+1}</td>
         <td><a href={entry.external_urls.spotify} target="_blank">{entry.name}</a></td>
       </tr>
     )
   })
   return (
-    <div>
+    <div className="top-artists">
       <h4>{title}:</h4>
-      <table>
+      <table className="top-artists-table">
         <tbody>
           {items}
         </tbody>
@@ -28,9 +29,10 @@ const ArtistsTable = ({entries, title}) => {
 }
 
 const TracksTable = ({entries, title}) => {
-  const items = _.map(entries, (entry) => {
+  const items = _.map(entries, (entry, index) => {
     return (
       <tr key={entry.name+entry.album}>
+        <td>{index+1}</td>
         <td><a href="#" target="_blank">{entry.name}</a></td>
         <td>{entry.album}</td>
         <td>{entry.artist}</td>
@@ -38,11 +40,12 @@ const TracksTable = ({entries, title}) => {
     )
   })
   return (
-    <div>
+    <div className="top-tracks">
       <h4>{title}:</h4>
-      <table>
+      <table className="top-tracks-table">
         <tbody>
           <tr>
+            <th></th>
             <th>Name</th>
             <th>Album</th>
             <th>Artist</th>
@@ -55,11 +58,22 @@ const TracksTable = ({entries, title}) => {
 }
 
 const Playlists = ({entries}) => {
-  const items = _.map(entries, (entry) => {
-    return <li key={entry.name}><a href={"playlist/" + entry.name + '-' +entry.id}>{entry.name}</a></li>
+  const items = _.map(entries, (entry, index) => {
+    return (<tr key={entry.name}>
+        <td>{index+1}</td>
+        <td><a href={"playlist/" + entry.name + '-' +entry.id}>{entry.name}</a></td>
+      </tr>
+    )
   }); 
   return(
-    <ul>{items}</ul>
+    <div className="playlists">
+      <h4>Playlists</h4>
+      <table className="playlists-table">
+        <tbody>
+          {items}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -70,19 +84,27 @@ class App extends Component {
     }
   }
 
-  componentWillMount(){
-    //this.props.dispatch(loadProfileData(this.props.data))
-  }
-
   render() {
     if (!_.isEmpty(this.props.data) && this.props.template === 'dashboard'){
       const profileData = this.props.data
       return (
         <div className="app-container">
           <h3>Welcome, {profileData.user}!</h3>
-          <ArtistsTable title="Top Artists" entries={profileData.top_artists} />
-          <TracksTable title="Top Tracks" entries={profileData.top_tracks} />
-          <Playlists entries={profileData.playlists} />
+          <table className="dashboard-table"><tbody>
+            <tr>
+              <td>
+                <Playlists entries={profileData.playlists} />
+              </td>
+              <td className="separator"></td>
+              <td>
+                <ArtistsTable title="Top Artists" entries={profileData.top_artists} />
+              </td>
+              <td className="separator"></td>
+              <td>
+                <TracksTable title="Top Tracks" entries={profileData.top_tracks} />
+              </td>
+            </tr>
+          </tbody></table>
         </div>
       );
     }
